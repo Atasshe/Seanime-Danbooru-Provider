@@ -3,7 +3,7 @@
     "name": "Danbooru",
     "description": "Provedor de imagens do Danbooru para o leitor de Mangá",
     "manifestURI": "https://raw.githubusercontent.com/Atasshe/Seanime-Danbooru-Provider/main/danbooru-manga-provider.json",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "author": "Developer",
     "type": "manga-provider",
     "language": "typescript",
