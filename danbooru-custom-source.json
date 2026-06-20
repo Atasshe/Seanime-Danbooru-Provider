@@ -1,0 +1,30 @@
+{
+    "id": "danbooru-custom-source",
+    "name": "Danbooru Feed",
+    "description": "Aba de catálogo dedicada para visualizar posts e ilustrações do Danbooru",
+    "manifestURI": "https://raw.githubusercontent.com/Atasshe/Seanime-Danbooru-Provider/main/danbooru-custom-source.json",
+    "version": "1.0.0",
+    "author": "Developer",
+    "type": "custom-source",
+    "language": "typescript",
+    "lang": "multi",
+    "payloadURI": "https://raw.githubusercontent.com/Atasshe/Seanime-Danbooru-Provider/main/custom_provider.ts",
+    "userConfig": {
+        "requiresConfig": false,
+        "version": 1,
+        "fields": [
+            {
+                "name": "danbooru_username",
+                "label": "Danbooru Username",
+                "type": "text",
+                "default": ""
+            },
+            {
+                "name": "danbooru_api_key",
+                "label": "Danbooru API Key",
+                "type": "text",
+                "default": ""
+            }
+        ]
+    }
+}
