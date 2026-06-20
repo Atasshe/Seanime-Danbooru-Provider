@@ -56,6 +56,7 @@ class Provider {
             ret.push({
                 id: String(entry.id),
                 title: `Post #${entry.id} (by ${artist})`,
+                synonyms: [entry.id], 
                 year: entry.created_at ? new Date(entry.created_at).getFullYear() : undefined,
                 image: entry.preview_file_url || entry.large_file_url || "",
             });
