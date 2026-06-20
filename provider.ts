@@ -13,20 +13,20 @@ class Provider {
     }
 
     private getAuthParams(): string {
-        // Ignora a checagem caso o Seanime ainda não tenha injetado as variáveis do usuárioConfig
         if (this.username.length && !this.username.includes("{{") && this.api_key.length && !this.api_key.includes("{{")) {
             return `&login=${encodeURIComponent(this.username)}&api_key=${encodeURIComponent(this.api_key)}`;
         }
         return "";
     }
 
+    /**
+     * Usado na pesquisa manual do leitor
+     */
     async search(opts: QueryOptions): Promise<SearchResult[]> {
         let url = `${this.api}/posts.json?limit=25`;
-        
-        if (opts.query && opts.query.length) {
-            url += `&tags=${encodeURIComponent(opts.query)}`;
+        if (opts.query && opts.query.trim().length) {
+            url += `&tags=${encodeURIComponent(opts.query.trim())}`;
         }
-
         url += this.getAuthParams();
 
         const res = await fetch(url, {
@@ -35,7 +35,6 @@ class Provider {
                 "Content-Type": "application/json",
             }
         });
-
         if (!res.ok) throw new Error(`Danbooru Error: ${res.statusText}`);
         
         const data = await res.json() as any[];
@@ -43,7 +42,6 @@ class Provider {
 
         for (const entry of data) {
             const artist = entry.tag_string_artist ? entry.tag_string_artist.split(" ").join(", ") : "Unknown Artist";
-            
             ret.push({
                 id: String(entry.id),
                 title: `Post #${entry.id} (by ${artist})`,
@@ -51,20 +49,26 @@ class Provider {
                 image: entry.preview_file_url || entry.large_file_url || "",
             });
         }
-
         return ret;
     }
     
+    /**
+     * Quando você clica no post pelo Custom Source, o Seanime chama este método 
+     * injetando o ID do post diretamente no parâmetro `mangaId`.
+     */
     async findChapters(mangaId: string): Promise<ChapterDetails[]> {
         return [{
-            id: mangaId,
+            id: mangaId, // Passamos o ID do post adiante como o ID do capítulo
             url: `${this.api}/posts/${mangaId}`,
-            title: `Imagem Original`,
+            title: `Imagem Original (Qualidade Máxima)`,
             chapter: "1",
             index: 0,
         }];
     }
     
+    /**
+     * Entrega a imagem original em alta resolução
+     */
     async findChapterPages(chapterId: string): Promise<ChapterPage[]> {
         let url = `${this.api}/posts/${chapterId}.json?`;
         url += this.getAuthParams();
@@ -75,23 +79,24 @@ class Provider {
                 "Content-Type": "application/json",
             }
         });
-
         if (!res.ok) throw new Error(`Danbooru Error: ${res.statusText}`);
         
         const entry = await res.json() as any;
-        const imageUrl = entry.large_file_url || entry.file_url || entry.preview_file_url || "";
+        
+        // MUDANÇA CRUCIAL: 'file_url' é o arquivo original enviado ao Danbooru (sem compressão/redimensionamento).
+        // Usamos 'large_file_url' e 'preview_file_url' apenas como fallbacks de segurança.
+        const imageUrl = entry.file_url || entry.large_file_url || entry.preview_file_url || "";
         
         if (!imageUrl) {
-            throw new Error("Não foi possível obter o endereço da imagem.");
+            throw new Error("Não foi possível obter o endereço da imagem original.");
         }
 
         return [{
             url: imageUrl,
             index: 0,
             headers: {
-                "Referer": `${this.api}/posts/${chapterId}`,
+                "Referer": `${this.api}/posts/${chapterId}`, // Evita bloqueio de hotlink
             },
         }];
     }
-            }
-              
+}
