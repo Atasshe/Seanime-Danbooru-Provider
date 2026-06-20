@@ -20,13 +20,24 @@ class Provider {
     }
 
     /**
-     * Usado na pesquisa manual do leitor
+     * Corrigido para identificar IDs automaticamente vindos do catálogo
      */
     async search(opts: QueryOptions): Promise<SearchResult[]> {
         let url = `${this.api}/posts.json?limit=25`;
-        if (opts.query && opts.query.trim().length) {
-            url += `&tags=${encodeURIComponent(opts.query.trim())}`;
+        const query = opts.query ? opts.query.trim() : "";
+
+        // REGEX INTELIGENTE: Verifica se a busca contém um "#número" (vindo do catálogo) ou "id:número" (busca manual)
+        const idMatch = query.match(/#(\d+)|id:(\d+)/);
+        
+        if (idMatch) {
+            // Extrai apenas os números capturados pela Regex
+            const postId = idMatch[1] || idMatch[2];
+            url += `&tags=${encodeURIComponent(`id:${postId}`)}`;
+        } else if (query.length) {
+            // Se for uma busca comum por tags (ex: "bronya_zaychik"), manda normal
+            url += `&tags=${encodeURIComponent(query)}`;
         }
+
         url += this.getAuthParams();
 
         const res = await fetch(url, {
@@ -52,13 +63,9 @@ class Provider {
         return ret;
     }
     
-    /**
-     * Quando você clica no post pelo Custom Source, o Seanime chama este método 
-     * injetando o ID do post diretamente no parâmetro `mangaId`.
-     */
     async findChapters(mangaId: string): Promise<ChapterDetails[]> {
         return [{
-            id: mangaId, // Passamos o ID do post adiante como o ID do capítulo
+            id: mangaId,
             url: `${this.api}/posts/${mangaId}`,
             title: `Imagem Original (Qualidade Máxima)`,
             chapter: "1",
@@ -66,9 +73,6 @@ class Provider {
         }];
     }
     
-    /**
-     * Entrega a imagem original em alta resolução
-     */
     async findChapterPages(chapterId: string): Promise<ChapterPage[]> {
         let url = `${this.api}/posts/${chapterId}.json?`;
         url += this.getAuthParams();
@@ -82,9 +86,6 @@ class Provider {
         if (!res.ok) throw new Error(`Danbooru Error: ${res.statusText}`);
         
         const entry = await res.json() as any;
-        
-        // MUDANÇA CRUCIAL: 'file_url' é o arquivo original enviado ao Danbooru (sem compressão/redimensionamento).
-        // Usamos 'large_file_url' e 'preview_file_url' apenas como fallbacks de segurança.
         const imageUrl = entry.file_url || entry.large_file_url || entry.preview_file_url || "";
         
         if (!imageUrl) {
@@ -95,7 +96,7 @@ class Provider {
             url: imageUrl,
             index: 0,
             headers: {
-                "Referer": `${this.api}/posts/${chapterId}`, // Evita bloqueio de hotlink
+                "Referer": `${this.api}/posts/${chapterId}`,
             },
         }];
     }
